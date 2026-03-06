@@ -9,8 +9,8 @@ output "profile_arn" {
 }
 
 output "role_arn" {
-  description = "ARN of the IAM role the Contabo server will assume"
-  value       = aws_iam_role.contabo_server.arn
+  description = "ARN of the IAM role the NONAWS server will assume"
+  value       = aws_iam_role.nonaws_server.arn
 }
 
 output "s3_bucket_name" {
@@ -31,6 +31,6 @@ output "signing_helper_command" {
       --private-key /etc/iam-roles-anywhere/workload.key \
       --trust-anchor-arn ${aws_rolesanywhere_trust_anchor.this.arn} \
       --profile-arn ${aws_rolesanywhere_profile.this.arn} \
-      --role-arn ${aws_iam_role.contabo_server.arn}
+      --role-arn ${aws_iam_role.nonaws_server.arn}
   EOT
 }

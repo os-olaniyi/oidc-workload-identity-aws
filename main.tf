@@ -1,16 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
 # ─────────────────────────────────────────────
 # 1. AWS Private Certificate Authority (Root CA)
 # ─────────────────────────────────────────────
@@ -78,7 +65,7 @@ resource "aws_rolesanywhere_trust_anchor" "this" {
 }
 
 # ─────────────────────────────────────────────
-# 3. IAM Role — Assumed by the Contabo Server
+# 3. IAM Role — Assumed by the NONAWS Server
 # ─────────────────────────────────────────────
 
 data "aws_iam_policy_document" "roles_anywhere_trust" {
@@ -104,8 +91,8 @@ data "aws_iam_policy_document" "roles_anywhere_trust" {
   }
 }
 
-resource "aws_iam_role" "contabo_server" {
-  name               = "${var.project_name}-contabo-role"
+resource "aws_iam_role" "nonaws_server" {
+  name               = "${var.project_name}-server-role"
   assume_role_policy = data.aws_iam_policy_document.roles_anywhere_trust.json
   tags               = var.tags
 }
@@ -119,7 +106,7 @@ resource "aws_rolesanywhere_profile" "this" {
   name    = "${var.project_name}-profile"
   enabled = true
 
-  role_arns        = [aws_iam_role.contabo_server.arn]
+  role_arns        = [aws_iam_role.nonaws_server.arn]
   duration_seconds = 3600 # 1 hour — signing helper auto-refreshes
 
   tags = var.tags

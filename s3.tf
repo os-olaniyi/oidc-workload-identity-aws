@@ -58,6 +58,6 @@ resource "aws_iam_policy" "s3_read_write" {
 }
 
 resource "aws_iam_role_policy_attachment" "s3_read_write" {
-  role       = aws_iam_role.contabo_server.name
+  role       = aws_iam_role.nonaws_server.name
   policy_arn = aws_iam_policy.s3_read_write.arn
 }

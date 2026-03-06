@@ -6,8 +6,8 @@ resource "aws_acmpca_certificate_authority" "root_ca" {
   type = "ROOT"
 
   certificate_authority_configuration {
-    key_algorithm     = "RSA_2048"
-    signing_algorithm = "SHA256WITHRSA"
+    key_algorithm     = var.ca_key_algorithm
+    signing_algorithm = var.ca_signing_algorithm
 
     subject {
       common_name  = var.ca_common_name
@@ -19,6 +19,13 @@ resource "aws_acmpca_certificate_authority" "root_ca" {
   # Enable if you need certificate revocation.
   revocation_configuration {}
 
+  permanent_deletion_time_in_days = var.ca_permanent_deletion_days
+
+  # Set to true in production to prevent accidental deletion ($400/month resource)
+  lifecycle {
+    prevent_destroy = false
+  }
+
   tags = var.tags
 }
 
@@ -26,13 +33,13 @@ resource "aws_acmpca_certificate_authority" "root_ca" {
 resource "aws_acmpca_certificate" "root_ca_cert" {
   certificate_authority_arn   = aws_acmpca_certificate_authority.root_ca.arn
   certificate_signing_request = aws_acmpca_certificate_authority.root_ca.certificate_signing_request
-  signing_algorithm           = "SHA256WITHRSA"
+  signing_algorithm           = var.ca_signing_algorithm
 
   template_arn = "arn:aws:acm-pca:::template/RootCACertificate/V1"
 
   validity {
     type  = "YEARS"
-    value = 10
+    value = var.ca_validity_years
   }
 }
 
@@ -107,7 +114,7 @@ resource "aws_rolesanywhere_profile" "this" {
   enabled = true
 
   role_arns        = [aws_iam_role.nonaws_server.arn]
-  duration_seconds = 3600 # 1 hour — signing helper auto-refreshes
+  duration_seconds = var.session_duration_seconds
 
   tags = var.tags
 }

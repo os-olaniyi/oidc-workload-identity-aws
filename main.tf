@@ -1,120 +1,35 @@
 # ─────────────────────────────────────────────
-# 1. AWS Private Certificate Authority (Root CA)
+# CA instances
 # ─────────────────────────────────────────────
 
-resource "aws_acmpca_certificate_authority" "root_ca" {
-  type = "ROOT"
+module "ca" {
+  source   = "./modules/ca"
+  for_each = var.cas
 
-  certificate_authority_configuration {
-    key_algorithm     = var.ca_key_algorithm
-    signing_algorithm = var.ca_signing_algorithm
-
-    subject {
-      common_name  = var.ca_common_name
-      organization = var.organization
-    }
-  }
-
-  # Disable CRL — not needed for Roles Anywhere in simple setups.
-  # Enable if you need certificate revocation.
-  revocation_configuration {}
-
-  permanent_deletion_time_in_days = var.ca_permanent_deletion_days
-
-  # Set to true in production to prevent accidental deletion ($400/month resource)
-  lifecycle {
-    prevent_destroy = false
-  }
-
-  tags = var.tags
-}
-
-# Self-sign the root CA certificate (required to activate it)
-resource "aws_acmpca_certificate" "root_ca_cert" {
-  certificate_authority_arn   = aws_acmpca_certificate_authority.root_ca.arn
-  certificate_signing_request = aws_acmpca_certificate_authority.root_ca.certificate_signing_request
-  signing_algorithm           = var.ca_signing_algorithm
-
-  template_arn = "arn:aws:acm-pca:::template/RootCACertificate/V1"
-
-  validity {
-    type  = "YEARS"
-    value = var.ca_validity_years
-  }
-}
-
-# Activate the CA by importing its own signed certificate
-resource "aws_acmpca_certificate_authority_certificate" "root_ca_activation" {
-  certificate_authority_arn = aws_acmpca_certificate_authority.root_ca.arn
-  certificate               = aws_acmpca_certificate.root_ca_cert.certificate
-  certificate_chain         = aws_acmpca_certificate.root_ca_cert.certificate_chain
+  name                       = each.key
+  ca_common_name             = each.value.ca_common_name
+  organization               = each.value.organization
+  ca_key_algorithm           = each.value.ca_key_algorithm
+  ca_signing_algorithm       = each.value.ca_signing_algorithm
+  ca_validity_years          = each.value.ca_validity_years
+  ca_permanent_deletion_days = each.value.ca_permanent_deletion_days
+  session_duration_seconds   = each.value.session_duration_seconds
+  tags                       = var.tags
 }
 
 # ─────────────────────────────────────────────
-# 2. IAM Roles Anywhere — Trust Anchor
+# S3 bucket instances
 # ─────────────────────────────────────────────
 
-resource "aws_rolesanywhere_trust_anchor" "this" {
-  name    = "${var.project_name}-trust-anchor"
-  enabled = true
+module "s3" {
+  source   = "./modules/s3"
+  for_each = var.s3_buckets
 
-  source {
-    source_type = "AWS_ACM_PCA"
-    source_data {
-      acm_pca_arn = aws_acmpca_certificate_authority.root_ca.arn
-    }
-  }
-
-  # Trust anchor only becomes usable after the CA is activated
-  depends_on = [aws_acmpca_certificate_authority_certificate.root_ca_activation]
-
-  tags = var.tags
-}
-
-# ─────────────────────────────────────────────
-# 3. IAM Role — Assumed by the NONAWS Server
-# ─────────────────────────────────────────────
-
-data "aws_iam_policy_document" "roles_anywhere_trust" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "sts:AssumeRole",
-      "sts:TagSession",
-      "sts:SetSourceIdentity",
-    ]
-
-    principals {
-      type        = "Service"
-      identifiers = ["rolesanywhere.amazonaws.com"]
-    }
-
-    # Scope to ONLY this trust anchor — prevents any other CA from using this role
-    condition {
-      test     = "ArnEquals"
-      variable = "aws:SourceArn"
-      values   = [aws_rolesanywhere_trust_anchor.this.arn]
-    }
-  }
-}
-
-resource "aws_iam_role" "nonaws_server" {
-  name               = "${var.project_name}-server-role"
-  assume_role_policy = data.aws_iam_policy_document.roles_anywhere_trust.json
-  tags               = var.tags
-}
-
-# ─────────────────────────────────────────────
-# 4. IAM Roles Anywhere — Profile
-# ─────────────────────────────────────────────
-# The profile links the trust anchor → IAM role and controls session settings.
-
-resource "aws_rolesanywhere_profile" "this" {
-  name    = "${var.project_name}-profile"
-  enabled = true
-
-  role_arns        = [aws_iam_role.nonaws_server.arn]
-  duration_seconds = var.session_duration_seconds
-
-  tags = var.tags
+  bucket_name          = each.value.bucket_name
+  role_name            = module.ca[each.value.ca_key].role_name
+  policy_name_prefix   = each.key
+  force_destroy        = each.value.force_destroy
+  encryption_algorithm = each.value.encryption_algorithm
+  kms_key_id           = each.value.kms_key_id
+  tags                 = var.tags
 }

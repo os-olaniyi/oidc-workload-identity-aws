@@ -3,8 +3,8 @@
 # ─────────────────────────────────────────────
 
 resource "aws_s3_bucket" "this" {
-  bucket        = var.s3_bucket_name
-  force_destroy = var.s3_force_destroy
+  bucket        = var.bucket_name
+  force_destroy = var.force_destroy
   tags          = var.tags
 }
 
@@ -30,8 +30,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm     = var.s3_encryption_algorithm
-      kms_master_key_id = var.s3_kms_key_id
+      sse_algorithm     = var.encryption_algorithm
+      kms_master_key_id = var.kms_key_id
     }
   }
 }
@@ -64,12 +64,12 @@ data "aws_iam_policy_document" "s3_read_write" {
 }
 
 resource "aws_iam_policy" "s3_read_write" {
-  name   = "${var.project_name}-s3-read-write"
+  name   = "${var.policy_name_prefix}-s3-rw"
   policy = data.aws_iam_policy_document.s3_read_write.json
   tags   = var.tags
 }
 
 resource "aws_iam_role_policy_attachment" "s3_read_write" {
-  role       = aws_iam_role.nonaws_server.name
+  role       = var.role_name
   policy_arn = aws_iam_policy.s3_read_write.arn
 }

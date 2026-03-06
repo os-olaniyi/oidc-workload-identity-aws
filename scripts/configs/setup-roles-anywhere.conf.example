@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# setup-roles-anywhere.sh configuration
+#
+# Copy this file and fill in your values:
+#   cp scripts/configs/setup-roles-anywhere.conf.example scripts/configs/dev-ca.conf
+#
+# Then run:
+#   ./scripts/setup-roles-anywhere.sh scripts/configs/dev-ca.conf
+#
+# Get these values from: terraform output -json cas
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Required ─────────────────────────────────────────────────────────────────
+
+CA_ARN="arn:aws:acm-pca:eu-west-1:123456789012:certificate-authority/xxxx"
+TRUST_ANCHOR_ARN="arn:aws:rolesanywhere:eu-west-1:123456789012:trust-anchor/xxxx"
+PROFILE_ARN="arn:aws:rolesanywhere:eu-west-1:123456789012:profile/xxxx"
+ROLE_ARN="arn:aws:iam::123456789012:role/dev-ca-server-role"
+AWS_REGION="eu-west-1"
+
+# ── Optional (uncomment to override defaults) ───────────────────────────────
+
+# SERVER_CN="workload-server"          # Common name in the workload certificate
+# ORGANIZATION="MyOrg"                 # Organization name in the certificate
+# SIGNING_ALGORITHM="SHA256WITHRSA"    # Must match your CA's signing algorithm
+# CERT_VALIDITY_DAYS=365               # How long the workload cert is valid
+# AWS_PROFILE_NAME="nonaws"            # AWS CLI profile name to create
+# CERT_DIR="/etc/iam-roles-anywhere"   # Where certs and keys are stored
+# HELPER_PATH="/usr/local/bin/aws_signing_helper"  # Where to install the helper

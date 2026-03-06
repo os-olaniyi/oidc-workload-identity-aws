@@ -7,13 +7,13 @@ variable "aws_region" {
 variable "project_name" {
   description = "Prefix for all resource names"
   type        = string
-  default     = "contabo-s3-access"
+  default     = "nonaws-s3-access"
 }
 
 variable "ca_common_name" {
   description = "Common name for the Private CA certificate"
   type        = string
-  default     = "contabo-root-ca"
+  default     = "nonaws-root-ca"
 }
 
 variable "organization" {
@@ -32,7 +32,7 @@ variable "tags" {
   description = "Tags applied to all resources"
   type        = map(string)
   default = {
-    Project     = "contabo-s3-access"
+    Project     = "nonaws-s3-access"
     ManagedBy   = "terraform"
     Environment = "production"
   }

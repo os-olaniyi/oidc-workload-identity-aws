@@ -28,6 +28,11 @@ variable "encryption_algorithm" {
   description = "Server-side encryption algorithm (AES256 or aws:kms)"
   type        = string
   default     = "aws:kms"
+
+  validation {
+    condition     = contains(["AES256", "aws:kms"], var.encryption_algorithm)
+    error_message = "Must be AES256 or aws:kms."
+  }
 }
 
 variable "kms_key_id" {
